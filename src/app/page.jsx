@@ -1,91 +1,196 @@
-import Image from 'next/image'
-import { Inter } from '@next/font/google'
-import styles from './page.module.css'
+"use client";
 
-const inter = Inter({ subsets: ['latin'] })
+import { Inter } from "@next/font/google";
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameMonth,
+  parse,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from "date-fns";
+import { AnimatePresence, motion, MotionConfig } from "framer-motion";
+import { useState } from "react";
+import useMeasure from "react-use-measure";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export default function Home() {
+  let [monthString, setMonthString] = useState(format(new Date(), "yyyy-MM"));
+  let [direction, setDirection] = useState();
+  let [isAnimating, setIsAnimating] = useState(false);
+  let month = parse(monthString, "yyyy-MM", new Date());
+
+  function nextMonth() {
+    if (isAnimating) return;
+
+    let next = addMonths(month, 1);
+
+    setMonthString(format(next, "yyyy-MM"));
+    setDirection(1);
+    setIsAnimating(true);
+  }
+
+  function previousMonth() {
+    if (isAnimating) return;
+
+    let previous = subMonths(month, 1);
+
+    setMonthString(format(previous, "yyyy-MM"));
+    setDirection(-1);
+    setIsAnimating(true);
+  }
+
+  let days = eachDayOfInterval({
+    start: startOfWeek(startOfMonth(month)),
+    end: endOfWeek(endOfMonth(month)),
+  });
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.jsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <div className={inter.className}>
+      <MotionConfig transition={transition}>
+        <div className="flex min-h-screen items-start bg-stone-800 pt-16 text-stone-900">
+          <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-2xl bg-white">
+            <div className="py-8">
+              <div className="flex flex-col justify-center rounded text-center">
+                <ResizablePanel>
+                  <AnimatePresence
+                    mode="popLayout"
+                    initial={false}
+                    custom={direction}
+                    onExitComplete={() => setIsAnimating(false)}
+                  >
+                    <motion.div
+                      key={monthString}
+                      initial="enter"
+                      animate="middle"
+                      exit="exit"
+                    >
+                      <header className="relative flex justify-between px-8">
+                        <motion.button
+                          variants={removeImmediately}
+                          className="z-10 rounded-full p-1.5 hover:bg-stone-100"
+                          onClick={previousMonth}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.5}
+                            stroke="currentColor"
+                            className="w-4 h-4"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M15.75 19.5L8.25 12l7.5-7.5"
+                            />
+                          </svg>
+                        </motion.button>
+                        <motion.p
+                          variants={variants}
+                          custom={direction}
+                          className="absolute inset-0 flex items-center justify-center font-semibold"
+                        >
+                          {format(month, "MMMM yyyy")}
+                        </motion.p>
+                        <motion.button
+                          variants={removeImmediately}
+                          className="z-10 rounded-full p-1.5 hover:bg-stone-100"
+                          onClick={nextMonth}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.5}
+                            stroke="currentColor"
+                            className="w-4 h-4"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M8.25 4.5l7.5 7.5-7.5 7.5"
+                            />
+                          </svg>
+                        </motion.button>
+                      </header>
+
+                      <motion.div
+                        variants={removeImmediately}
+                        className="mt-6 grid grid-cols-7 gap-y-6 px-8 text-sm"
+                      >
+                        <span className="font-medium text-stone-500">Su</span>
+                        <span className="font-medium text-stone-500">Mo</span>
+                        <span className="font-medium text-stone-500">Tu</span>
+                        <span className="font-medium text-stone-500">We</span>
+                        <span className="font-medium text-stone-500">Th</span>
+                        <span className="font-medium text-stone-500">Fr</span>
+                        <span className="font-medium text-stone-500">Sa</span>
+                      </motion.div>
+
+                      <motion.div
+                        variants={variants}
+                        custom={direction}
+                        className="mt-6 grid grid-cols-7 gap-y-6 px-8 text-sm"
+                      >
+                        {days.map((day) => (
+                          <span
+                            className={`${
+                              isSameMonth(day, month) ? "" : "text-stone-300"
+                            } font-semibold`}
+                            key={format(day, "yyyy-MM-dd")}
+                          >
+                            {format(day, "d")}
+                          </span>
+                        ))}
+                      </motion.div>
+                    </motion.div>
+                  </AnimatePresence>
+                </ResizablePanel>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </MotionConfig>
+    </div>
+  );
+}
 
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-        <div className={styles.thirteen}>
-          <Image src="/thirteen.svg" alt="13" width={40} height={31} priority />
-        </div>
-      </div>
+// let transition = { type: "tween", ease: "easeOut", duration: 0.25 };
+let transition = { type: "spring", bounce: 0, duration: 0.3 };
+let variants = {
+  enter: (direction) => {
+    // console.log({ direction });
+    return { x: `${100 * direction}%`, opacity: 0 };
+    // return { x: "100%" };
+  },
+  middle: { x: "0%", opacity: 1 },
+  // exit: { x: "-100%" },
+  exit: (direction) => {
+    // return { x: "-100%" };
+    return { x: `${-100 * direction}%`, opacity: 0 };
+  },
+  // exit: (direction) => {
+  //   console.log({ direction });
+  //   return { x: `${-100 * direction}%` };
+  // },
+};
 
-      <div className={styles.grid}>
-        <a
-          href="https://beta.nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
+let removeImmediately = {
+  exit: { visibility: "hidden" },
+};
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>Explore the Next.js 13 playground.</p>
-        </a>
+function ResizablePanel({ children }) {
+  let [ref, bounds] = useMeasure();
 
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+  return (
+    <motion.div animate={{ height: bounds.height > 0 ? bounds.height : null }}>
+      <div ref={ref}>{children}</div>
+    </motion.div>
+  );
 }
